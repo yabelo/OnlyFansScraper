@@ -24,6 +24,19 @@ namespace OnlyFansScraper {
             progressBar.Maximum = 100;
             progressBar.Step = 1;
             progressBar.Visible = false;
+
+            if (!IsDotNetFrameworkInstalled()) {
+                MessageBox.Show(
+                    "The .NET Framework is not installed on your computer. " +
+                    "You need to install it to run this application. " +
+                    "Click OK to open the .NET Framework download page.",
+                    "Missing .NET Framework",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                System.Diagnostics.Process.Start("https://dotnet.microsoft.com/download/dotnet-framework");
+                Environment.Exit(0);
+            }
         }
 
         private async void searchBtn_Click_1(object sender, EventArgs e) {
@@ -454,5 +467,15 @@ namespace OnlyFansScraper {
             string url = "https://github.com/yabelo";
             System.Diagnostics.Process.Start(url);
         }
+
+        private bool IsDotNetFrameworkInstalled() {
+            try {
+                _ = System.Drawing.Color.Red;
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
     }
 }
