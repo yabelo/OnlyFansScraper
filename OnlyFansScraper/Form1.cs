@@ -6,24 +6,28 @@ using System.Windows.Forms;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Interactions;
 using System.IO;
 using System.Collections.Generic;
-using OpenQA.Selenium.DevTools.V114.Debugger;
+using OpenQA.Selenium.Support.UI;
+
 
 namespace OnlyFansScraper {
     public partial class OnlyFansScraper : Form {
 
         // HashSet to store unique links to avoid duplicates during scraping
-        private HashSet<string> uniqueLinks = new HashSet<string>();
+        private static HashSet<string> uniqueLinks = new HashSet<string>();
 
         // Stores the user's search query
-        private string query = "";
+        public static string query = "";
 
         // Stores the number of pages to scrape
-        private int pages = 1;
+        public static int pages = 1;
 
         // Stores the user's user-agent
-        private string userAgent = "";
+        public static string userAgent = "";
+
+        private static CheckBox checkBox;
 
         public OnlyFansScraper() {
             InitializeComponent();
@@ -56,8 +60,10 @@ namespace OnlyFansScraper {
         private async void searchBtn_Click_1(object sender, EventArgs e) {
             searchBtn.Enabled = false;
 
-            // Get the user's search query from the text box
+            // Store the queries in variables.
             query = queryTextBox.Text;
+            checkBox = saveVideosNameCheckBox;
+            userAgent = userAgentTextBox.Text;
 
             // Check if the query is empty
             if (String.IsNullOrEmpty(query)) {
@@ -92,25 +98,25 @@ namespace OnlyFansScraper {
 
                             var scrapingTask = Task.Run(async () => {
                                 // Start scraping from various sources
-                                scrapedVids += await ScrapeErome();
+                                scrapedVids += await Scrape.ScrapeErome();
                                 totalScrapedLinks++;
 
-                                scrapedVids += await ScrapeEroThots();
+                                scrapedVids += await Scrape.ScrapeEroThots();
                                 totalScrapedLinks++;
 
-                                scrapedVids += await ScrapeViralPornHub();
+                                scrapedVids += await Scrape.ScrapeViralPornHub();
                                 totalScrapedLinks++;
 
-                                scrapedVids += await ScrapeThotHub();
+                                scrapedVids += await Scrape.ScrapeThotHub();
                                 totalScrapedLinks++;
 
-                                scrapedVids += await ScrapeMat6tube();
+                                scrapedVids += await Scrape.ScrapeMat6tube();
                                 totalScrapedLinks++;
 
-                                scrapedVids += await ScrapeHClips();
+                                scrapedVids += await Scrape.ScrapeHClips();
                                 totalScrapedLinks++;
 
-                                scrapedVids += await ScrapeCamWhores();
+                                scrapedVids += await Scrape.ScrapeCamWhorez();
                                 totalScrapedLinks++;
                             });
 
@@ -150,331 +156,7 @@ namespace OnlyFansScraper {
             }
         }
 
-        // Scrape videos from the CamWhorez website
-        public async Task<int> ScrapeCamWhores() {
-            // Modify the query for URL and paging
-            string newQuery = query.Replace(" ", "-");
-            string nextPage = query.Replace(" ", "%20");
-
-            int scrapedVids = 0;
-
-            var chromeOptions = new ChromeOptions();
-            chromeOptions.AddArguments("--headless");
-            chromeOptions.AddArguments("--disable-gpu");
-            chromeOptions.AddArguments("--log-level=3");
-
-            var chromeDriverService = ChromeDriverService.CreateDefaultService();
-            chromeDriverService.HideCommandPromptWindow = true;
-
-            using (IWebDriver driver = new ChromeDriver(chromeDriverService, chromeOptions)) {
-                // Navigate to the CamWhorez search results page
-                driver.Navigate().GoToUrl($"https://www.camwhorez.tv/search/{newQuery}/");
-
-                for (int i = 2; i <= pages + 1; i++) {
-                    IJavaScriptExecutor jsExecutor = (IJavaScriptExecutor)driver;
-
-                    await Task.Delay(2000);
-
-                    // Get the HTML content of the page
-                    string htmlContent = driver.PageSource;
-
-                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                    doc.LoadHtml(htmlContent);
-
-                    // XPath to extract video links
-                    string xpath = "//div[contains(@class, 'item') and not(contains(@class, 'private'))]//a[contains(@href, 'https://www.camwhorez.tv/videos/')]";
-
-                    var videoLinks = doc.DocumentNode.SelectNodes(xpath);
-                    scrapedVids += await SaveVideos(videoLinks, query);
-
-                    // Construct data parameters for the next page
-                    string dataParameterPattern = "q:" + nextPage + ";category_ids:;sort_by:post_date;from_videos+from_albums:{0}";
-                    string dataParameters = string.Format(dataParameterPattern, i.ToString("D2"));
-
-                    // Find and click the "Next" button for pagination
-                    IWebElement nextButton = driver.FindElement(By.XPath($"//li[@class='page']/a[@data-parameters='{dataParameters}']"));
-                    if (nextButton == null) {
-                        break;
-                    }
-                    if (nextButton.Displayed && nextButton.Enabled) {
-                        jsExecutor.ExecuteScript("arguments[0].click();", nextButton);
-                    }
-                }
-            }
-
-            return scrapedVids;
-        }
-
-        // Scrape videos from the HClips website
-        public async Task<int> ScrapeHClips() {
-            // Modify the query for URL
-            string newQuery = query.Replace(" ", "+");
-            int scrapedVids = 0;
-
-            var chromeOptions = new ChromeOptions();
-            chromeOptions.AddArguments("--headless");
-            chromeOptions.AddArguments("--disable-gpu");
-            chromeOptions.AddArguments("--log-level=3");
-
-            var chromeDriverService = ChromeDriverService.CreateDefaultService();
-            chromeDriverService.HideCommandPromptWindow = true;
-
-            using (IWebDriver driver = new ChromeDriver(chromeDriverService, chromeOptions)) {
-                for (int i = 0; i < pages; i++) {
-                    string url = $"https://hclips.com/search/{i + 1}/?s={newQuery}";
-                    driver.Navigate().GoToUrl(url);
-
-                    await Task.Delay(2000);
-
-                    // Get the HTML content of the page
-                    string htmlContent = driver.PageSource;
-
-                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                    doc.LoadHtml(htmlContent);
-
-                    // XPath to extract video links
-                    string xpath = "//a[@href]";
-                    var videoLinks = doc.DocumentNode.SelectNodes(xpath);
-
-                    // Save videos found on the current page
-                    scrapedVids += await SaveVideos(videoLinks, query);
-                }
-            }
-
-            return scrapedVids;
-        }
-
-        // Scrape videos from the Mat6tube website
-        public async Task<int> ScrapeMat6tube() {
-            // Modify the query for URL
-            string newQuery = query.Replace(" ", "%20");
-            int scrapedVids = 0;
-
-            userAgent = userAgentTextBox.Text;
-
-            var chromeOptions = new ChromeOptions();
-            chromeOptions.AddArguments("--headless");
-            chromeOptions.AddArguments("--disable-gpu");
-            chromeOptions.AddArguments("--log-level=3");
-
-            if (String.IsNullOrEmpty(userAgent)) return 0;
-            chromeOptions.AddArgument($"--user-agent={userAgent}");
-
-            var chromeDriverService = ChromeDriverService.CreateDefaultService();
-            chromeDriverService.HideCommandPromptWindow = true;
-
-            using (IWebDriver driver = new ChromeDriver(chromeDriverService, chromeOptions)) {
-                driver.Navigate().GoToUrl($"https://www.mat6tube.com/video/{newQuery}/");
-
-                for (int i = 0; i < pages; i++) {
-                    IJavaScriptExecutor jsExecutor = (IJavaScriptExecutor)driver;
-                    jsExecutor.ExecuteScript("window.scrollBy(0, 200);");
-                    await Task.Delay(2000);
-
-                    IWebElement showMoreButton = null;
-                    try {
-                        showMoreButton = driver.FindElement(By.CssSelector($"div.more[data-page='{i}'][data-loading='0']"));
-                    } catch (NoSuchElementException) {
-                        break;
-                    }
-
-                    if (showMoreButton != null) {
-                        if (showMoreButton.Displayed && showMoreButton.Enabled) {
-                            jsExecutor.ExecuteScript("arguments[0].click();", showMoreButton);
-                        } else {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-
-                await Task.Delay(2000);
-
-                // Get the HTML content of the page
-                string htmlContent = driver.PageSource;
-
-                HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                doc.LoadHtml(htmlContent);
-
-                // XPath to extract video links
-                string xpath = "//a[contains(@class, 'item_link')]";
-                var videoLinks = doc.DocumentNode.SelectNodes(xpath);
-
-                // Save videos found on the current page
-                scrapedVids += await SaveVideos(videoLinks, query);
-            }
-
-            return scrapedVids;
-        }
-
-
-        // Scrape videos from the ThotHub website
-        public async Task<int> ScrapeThotHub() {
-            // Modify the query for URL
-            string newQuery = query.Replace(" ", "-");
-
-            int scrapedVids = 0;
-
-            var chromeOptions = new ChromeOptions();
-            chromeOptions.AddArguments("--headless");
-            chromeOptions.AddArguments("--disable-gpu");
-            chromeOptions.AddArguments("--log-level=3");
-
-            var chromeDriverService = ChromeDriverService.CreateDefaultService();
-            chromeDriverService.HideCommandPromptWindow = true;
-
-            using (IWebDriver driver = new ChromeDriver(chromeDriverService, chromeOptions)) {
-                // Navigate to the ThotHub search results page
-                driver.Navigate().GoToUrl($"https://www.thothub.lol/search/{newQuery}/");
-
-                for (int i = 0; i < pages; i++) {
-                    IJavaScriptExecutor jsExecutor = (IJavaScriptExecutor)driver;
-                    jsExecutor.ExecuteScript("window.scrollTo(0, document.body.scrollHeight)");
-                    await Task.Delay(2000);
-
-                    // Get the HTML content of the page
-                    string htmlContent = driver.PageSource;
-
-                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                    doc.LoadHtml(htmlContent);
-
-                    // XPath to extract video links
-                    string xpath = "//div[contains(@class, 'item') and not(contains(@class, 'private'))]//a[contains(@href, 'https://thothub.lol/videos/')]";
-
-                    var videoLinks = doc.DocumentNode.SelectNodes(xpath);
-
-                    // Save videos found on the current page
-                    scrapedVids += await SaveVideos(videoLinks, query);
-
-                    IWebElement nextButton = driver.FindElement(By.CssSelector("a[data-action='ajax']"));
-                    if (nextButton == null) {
-                        break;
-                    }
-                    if (nextButton.Displayed && nextButton.Enabled) {
-                        jsExecutor.ExecuteScript("arguments[0].click();", nextButton);
-                    }
-                }
-            }
-
-            return scrapedVids;
-        }
-
-        // Scrape videos from the EroThots website
-        public async Task<int> ScrapeEroThots() {
-            // Modify the query for URL
-            string newQuery = query.Replace(" ", "%20");
-            int scrapedVids = 0;
-
-            string baseUrl = "https://erothots.co/videos/" + newQuery;
-
-            for (int i = 0; i < pages; i++) {
-                string searchUrl = baseUrl + $"?p={i}";
-
-                using (HttpClient httpClient = new HttpClient()) {
-                    // Get the HTML content of the page
-                    string htmlContent = httpClient.GetStringAsync(searchUrl).Result;
-
-                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                    doc.LoadHtml(htmlContent);
-
-                    // XPath to extract video links
-                    string xpath = "//a[contains(@class, 'video')]";
-
-                    var videoLinks = doc.DocumentNode.SelectNodes(xpath);
-
-                    // Save videos found on the current page
-                    scrapedVids += await SaveVideos(videoLinks, query);
-                }
-            }
-
-            return scrapedVids;
-        }
-
-        // Scrape videos from the ViralPornHub website
-        public async Task<int> ScrapeViralPornHub() {
-            // Modify the query for URL
-            string newQuery = query.Replace(" ", "-");
-
-            int scrapedVids = 0;
-
-            var chromeOptions = new ChromeOptions();
-            chromeOptions.AddArguments("--headless");
-            chromeOptions.AddArguments("--disable-gpu");
-            chromeOptions.AddArguments("--log-level=3");
-
-            var chromeDriverService = ChromeDriverService.CreateDefaultService();
-            chromeDriverService.HideCommandPromptWindow = true;
-
-            using (IWebDriver driver = new ChromeDriver(chromeDriverService, chromeOptions)) {
-                // Navigate to the ViralPornHub search results page
-                driver.Navigate().GoToUrl($"https://www.viralpornhub.com/search/{newQuery}/");
-
-                for (int i = 0; i < pages; i++) {
-                    IJavaScriptExecutor jsExecutor = (IJavaScriptExecutor)driver;
-                    jsExecutor.ExecuteScript("window.scrollTo(0, document.body.scrollHeight)");
-                    await Task.Delay(2000);
-
-                    // Get the HTML content of the page
-                    string htmlContent = driver.PageSource;
-
-                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                    doc.LoadHtml(htmlContent);
-
-                    // XPath to extract video links
-                    string xpath = "//div[contains(@class, 'item')]//a[contains(@href, 'https://viralpornhub.com/videos/')]";
-
-                    var videoLinks = doc.DocumentNode.SelectNodes(xpath);
-
-                    // Save videos found on the current page
-                    scrapedVids += await SaveVideos(videoLinks, query);
-
-                    IWebElement nextButton = driver.FindElement(By.CssSelector("a[data-action='ajax']"));
-                    if (nextButton == null) {
-                        break;
-                    }
-                    if (nextButton.Displayed && nextButton.Enabled) {
-                        jsExecutor.ExecuteScript("arguments[0].click();", nextButton);
-                    }
-                }
-            }
-
-            return scrapedVids;
-        }
-
-        // Scrape videos from the Erome website
-        public async Task<int> ScrapeErome() {
-            // Modify the query for URL
-            string newQuery = query.Replace(" ", "+");
-
-            int scrapedVids = 0;
-
-            string baseUrl = "https://erome.com/search?q=" + newQuery;
-
-            for (int i = 0; i < pages; i++) {
-                string searchUrl = baseUrl + $"&page={i + 1}";
-
-                using (HttpClient httpClient = new HttpClient()) {
-                    // Get the HTML content of the page
-                    string htmlContent = httpClient.GetStringAsync(searchUrl).Result;
-
-                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
-                    doc.LoadHtml(htmlContent);
-
-                    // XPath to extract video links
-                    string xpath = "//a[contains(@class, 'album-link')]";
-
-                    var videoLinks = doc.DocumentNode.SelectNodes(xpath);
-
-                    // Save videos found on the current page
-                    scrapedVids += await SaveVideos(videoLinks, query);
-                }
-            }
-
-            return scrapedVids;
-        }
-
-        private Task<int> SaveVideos(HtmlNodeCollection videoLinks, string query) {
+        public static Task<int> SaveVideos(HtmlNodeCollection videoLinks, string query) {
             int scrapedVids = 0;
 
             if (videoLinks != null) {
@@ -547,10 +229,10 @@ namespace OnlyFansScraper {
         }
 
         // Method to check if a video link matches the query
-        private bool CheckVideo(string link, string mainLink, string videoName, string query) {
+        private static bool CheckVideo(string link, string mainLink, string videoName, string query) {
             try {
                 if (videoName.Contains(query)) {
-                    if (saveVideosNameCheckBox.Checked) {
+                    if (checkBox.Checked) {
                         Console.WriteLine($"{videoName}: {mainLink}{link}");
                     } else {
                         Console.WriteLine($"{mainLink}{link}");
