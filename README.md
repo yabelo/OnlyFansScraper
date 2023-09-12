@@ -13,4 +13,4 @@ https://mega.nz/folder/inwi1Cia#vdTBBdtgjqTjYP_jXP_jLQ
 - ### Hit search and wait!
 
 # Screenshot
-![image](https://github.com/yabelo/OnlyFansScraper/assets/111225417/c6cae322-e840-4e3b-914b-7cde178c96e1)
+![image](https://github.com/yabelo/OnlyFansScraper/assets/111225417/a5c1abf3-2cc3-46e3-9766-022bc9a93481)
