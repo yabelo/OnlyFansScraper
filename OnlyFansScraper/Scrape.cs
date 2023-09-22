@@ -1,28 +1,121 @@
 ﻿using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.DevTools;
 using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
-using OnlyFansScraper;
 
 namespace OnlyFansScraper {
     public class Scrape {
 
-        private static string query = OnlyFansScraper.query;
+        private string query = OnlyFansScraper.query;
 
-        private static int pages = OnlyFansScraper.pages;
+        private int pages = OnlyFansScraper.pages;
         
-        private static string userAgent = OnlyFansScraper.userAgent;
+        private string userAgent = OnlyFansScraper.userAgent;
+
+        public Scrape(string query, int pages, string userAgent) {
+            this.query = query;
+            this.pages = pages;
+            this.userAgent = userAgent;
+        }
+
+        // Scrape videos from the InternetChicks website
+        public async Task<int> ScrapeInternetChicks() {
+            // Modify the query for URL
+            string newQuery = query.Replace(" ", "+");
+
+            int scrapedVids = 0;
+
+            string baseUrl = $"https://internetchicks.com/{"<page>"}/?s={newQuery}";
+
+            for (int i = 0; i < pages; i++) {
+                string searchUrl = baseUrl.Replace("<page>", $"page/{i + 1}");
+
+                using (HttpClient httpClient = new HttpClient()) {
+                    // Get the HTML content of the page
+                    string htmlContent = httpClient.GetStringAsync(searchUrl).Result;
+
+                    HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+                    doc.LoadHtml(htmlContent);
+
+                    // XPath to extract video links
+                    string xpath = "//a[contains(@class, 'entry-title-link')]";
+
+                    var videoLinks = doc.DocumentNode.SelectNodes(xpath);
+
+                    // Save videos found on the current page
+                    scrapedVids += await OnlyFansScraper.SaveVideos(videoLinks, query);
+                }
+            }
+
+            return scrapedVids;
+        }
+
+        // Scrape videos from the GotAnyNudes website
+        public async Task<int> ScrapeGotAnyNudes() {
+            // Modify the query for URL
+            string newQuery = query.Replace(" ", "+");
+            int scrapedVids = 0;
+
+            var chromeOptions = new ChromeOptions();
+            chromeOptions.AddArguments("--headless");
+            chromeOptions.AddArguments("--disable-gpu");
+            chromeOptions.AddArguments("--log-level=3");
+
+            var chromeDriverService = ChromeDriverService.CreateDefaultService();
+            chromeDriverService.HideCommandPromptWindow = true;
+
+            using (IWebDriver driver = new ChromeDriver(chromeDriverService, chromeOptions)) {
+                driver.Navigate().GoToUrl($"https://gotanynudes.com/?s={newQuery}");
+
+                for (int i = 0; i < 1; i++) {
+                    IJavaScriptExecutor jsExecutor = (IJavaScriptExecutor)driver;
+                    jsExecutor.ExecuteScript("window.scrollBy(0, document.body.scrollHeight);");
+                    await Task.Delay(2000);
+
+                    IWebElement showMoreButton = null;
+                    try {
+                        showMoreButton = driver.FindElement(By.XPath("//a[@class='g1-button g1-button-m g1-button-solid g1-load-more']"));
+                    } catch (NoSuchElementException) {
+                        break;
+                    }
+
+                    if (showMoreButton != null) {
+                        if (showMoreButton.Displayed && showMoreButton.Enabled) {
+                            jsExecutor.ExecuteScript("arguments[0].click();", showMoreButton);
+                        } else {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                await Task.Delay(2000);
+
+                // Get the HTML content of the page
+                string htmlContent = driver.PageSource;
+
+                HtmlAgilityPack.HtmlDocument doc = new HtmlAgilityPack.HtmlDocument();
+                doc.LoadHtml(htmlContent);
+
+                // XPath to extract video links
+                ////h3[contains(@class, 'g1-gamma g1-gamma-1st entry-title')]
+                string xpath = "//h3[contains(@class, 'g1-gamma g1-gamma-1st entry-title')]/a";
+
+                var videoLinks = doc.DocumentNode.SelectNodes(xpath);
+
+                // Save videos found on the current page
+                scrapedVids += await OnlyFansScraper.SaveVideos(videoLinks, query);
+            }
+
+            return scrapedVids;
+        }
 
         // Scrape videos from the CamWhorez website
-        public static async Task<int> ScrapeCamWhorez() {
+        public async Task<int> ScrapeCamWhorez() {
             // Modify the query for URL and paging
             string newQuery = query.Replace(" ", "-");
             string nextPage = query.Replace(" ", "%20");
@@ -112,7 +205,7 @@ namespace OnlyFansScraper {
         }
 
         // Scrape videos from the HClips website
-        public static async Task<int> ScrapeHClips() {
+        public async Task<int> ScrapeHClips() {
             // Modify the query for URL
             string newQuery = query.Replace(" ", "+");
             int scrapedVids = 0;
@@ -151,7 +244,7 @@ namespace OnlyFansScraper {
         }
 
         // Scrape videos from the Mat6tube website
-        public static async Task<int> ScrapeMat6tube() {
+        public async Task<int> ScrapeMat6tube() {
             // Modify the query for URL
             string newQuery = query.Replace(" ", "%20");
             int scrapedVids = 0;
@@ -214,7 +307,7 @@ namespace OnlyFansScraper {
 
 
         // Scrape videos from the ThotHub website
-        public static async Task<int> ScrapeThotHub() {
+        public async Task<int> ScrapeThotHub() {
             // Modify the query for URL
             string newQuery = query.Replace(" ", "-");
 
@@ -265,7 +358,7 @@ namespace OnlyFansScraper {
         }
 
         // Scrape videos from the EroThots website
-        public static async Task<int> ScrapeEroThots() {
+        public async Task<int> ScrapeEroThots() {
             // Modify the query for URL
             string newQuery = query.Replace(" ", "%20");
             int scrapedVids = 0;
@@ -296,7 +389,7 @@ namespace OnlyFansScraper {
         }
 
         // Scrape videos from the ViralPornHub website
-        public static async Task<int> ScrapeViralPornHub() {
+        public async Task<int> ScrapeViralPornHub() {
             // Modify the query for URL
             string newQuery = query.Replace(" ", "-");
 
@@ -347,7 +440,7 @@ namespace OnlyFansScraper {
         }
 
         // Scrape videos from the Erome website
-        public static async Task<int> ScrapeErome() {
+        public async Task<int> ScrapeErome() {
             // Modify the query for URL
             string newQuery = query.Replace(" ", "+");
 

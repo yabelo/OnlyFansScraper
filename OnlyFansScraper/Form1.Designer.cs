@@ -34,6 +34,8 @@ namespace OnlyFansScraper {
             this.saveVideosNameCheckBox = new System.Windows.Forms.CheckBox();
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.tag = new System.Windows.Forms.Label();
+            this.label1 = new System.Windows.Forms.Label();
+            this.userAgentTextBox = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.numPagesNumericUpDown)).BeginInit();
             this.SuspendLayout();
             // 
@@ -59,7 +61,7 @@ namespace OnlyFansScraper {
             // searchBtn
             // 
             this.searchBtn.BackColor = System.Drawing.SystemColors.ControlLight;
-            this.searchBtn.Location = new System.Drawing.Point(391, 435);
+            this.searchBtn.Location = new System.Drawing.Point(361, 422);
             this.searchBtn.Name = "searchBtn";
             this.searchBtn.Size = new System.Drawing.Size(75, 23);
             this.searchBtn.TabIndex = 3;
@@ -120,21 +122,40 @@ namespace OnlyFansScraper {
             // 
             this.progressBar.BackColor = System.Drawing.SystemColors.ActiveCaption;
             this.progressBar.ForeColor = System.Drawing.SystemColors.GradientInactiveCaption;
-            this.progressBar.Location = new System.Drawing.Point(200, 323);
+            this.progressBar.Location = new System.Drawing.Point(161, 323);
             this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(473, 23);
+            this.progressBar.Size = new System.Drawing.Size(512, 23);
             this.progressBar.TabIndex = 8;
             // 
             // tag
             // 
             this.tag.AutoSize = true;
             this.tag.Font = new System.Drawing.Font("Monocraft", 27.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(177)));
-            this.tag.Location = new System.Drawing.Point(134, 40);
+            this.tag.Location = new System.Drawing.Point(91, 39);
             this.tag.Name = "tag";
             this.tag.Size = new System.Drawing.Size(647, 49);
             this.tag.TabIndex = 9;
             this.tag.Text = "OnlyFans Scraper By Yablo";
             this.tag.Click += new System.EventHandler(this.tag_Click);
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Font = new System.Drawing.Font("Monocraft", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(177)));
+            this.label1.Location = new System.Drawing.Point(156, 249);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(298, 25);
+            this.label1.TabIndex = 11;
+            this.label1.Text = "user-agent (optional):";
+            this.label1.Click += new System.EventHandler(this.label1_Click_1);
+            // 
+            // userAgentTextBox
+            // 
+            this.userAgentTextBox.Location = new System.Drawing.Point(451, 255);
+            this.userAgentTextBox.Name = "userAgentTextBox";
+            this.userAgentTextBox.Size = new System.Drawing.Size(222, 19);
+            this.userAgentTextBox.TabIndex = 10;
+            this.userAgentTextBox.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
             // 
             // OnlyFansScraper
             // 
@@ -142,6 +163,8 @@ namespace OnlyFansScraper {
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ControlDark;
             this.ClientSize = new System.Drawing.Size(884, 484);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.userAgentTextBox);
             this.Controls.Add(this.tag);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.saveVideosNameCheckBox);
@@ -158,6 +181,10 @@ namespace OnlyFansScraper {
             this.ResumeLayout(false);
             this.PerformLayout();
 
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e) {
+            throw new NotImplementedException();
         }
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e) {
@@ -186,6 +213,8 @@ namespace OnlyFansScraper {
         private System.Windows.Forms.CheckBox saveVideosNameCheckBox;
         private System.Windows.Forms.ProgressBar progressBar;
         private System.Windows.Forms.Label tag;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox userAgentTextBox;
     }
 }
 

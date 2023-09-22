@@ -1,15 +1,10 @@
 ﻿using System;
 using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using HtmlAgilityPack;
-using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Interactions;
 using System.IO;
 using System.Collections.Generic;
-using OpenQA.Selenium.Support.UI;
 
 
 namespace OnlyFansScraper {
@@ -62,8 +57,11 @@ namespace OnlyFansScraper {
 
             // Store the queries in variables.
             query = queryTextBox.Text;
+            query = query.ToLower().Trim();
+
             checkBox = saveVideosNameCheckBox;
             userAgent = userAgentTextBox.Text;
+            pages = (int)numPagesNumericUpDown.Value;
 
             // Check if the query is empty
             if (String.IsNullOrEmpty(query)) {
@@ -71,88 +69,88 @@ namespace OnlyFansScraper {
                 return;
             }
 
-            // Get the number of pages to scrape from the numeric up-down control
-            pages = (int)numPagesNumericUpDown.Value;
+            queryTextBox.Enabled = false;
+            saveVideosNameCheckBox.Enabled = false;
+            userAgentTextBox.Enabled = false;
+            numPagesNumericUpDown.Enabled = false;
 
-            // Create a SaveFileDialog for the user to choose where to save the results
-            using (SaveFileDialog saveFileDialog = new SaveFileDialog()) {
-                saveFileDialog.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*";
-                saveFileDialog.FilterIndex = 1;
-                saveFileDialog.RestoreDirectory = true;
+            // Show the save file dialog to the user
+            string resultsFilePath = $"{Directory.GetCurrentDirectory()}\\output\\{query}.txt";
 
-                // Show the save file dialog to the user
-                if (saveFileDialog.ShowDialog() == DialogResult.OK) {
-                    string resultsFilePath = saveFileDialog.FileName;
+            int scrapedVids = 0;
+            var standardOut = Console.Out;
 
-                    int scrapedVids = 0;
-                    var standardOut = Console.Out;
+            try {
+                using (StreamWriter resultsWriter = new StreamWriter(resultsFilePath)) {
+                    Console.SetOut(resultsWriter);
 
-                    try {
-                        using (StreamWriter resultsWriter = new StreamWriter(resultsFilePath)) {
-                            Console.SetOut(resultsWriter);
+                    int totalScrapedLinks = 0;
 
-                            int totalScrapedLinks = 0;
+                    // Show progress bar
+                    progressBar.Visible = true;
 
-                            // Show progress bar
-                            progressBar.Visible = true;
+                    Scrape scrape = new Scrape(query, pages, userAgent);
 
-                            var scrapingTask = Task.Run(async () => {
-                                // Start scraping from various sources
-                                scrapedVids += await Scrape.ScrapeErome();
-                                totalScrapedLinks++;
+                    var scrapingTask = Task.Run(async () => {
+                        // Start scraping from various sources
+                        scrapedVids += await scrape.ScrapeErome();
+                        totalScrapedLinks++;
 
-                                scrapedVids += await Scrape.ScrapeEroThots();
-                                totalScrapedLinks++;
+                        scrapedVids += await scrape.ScrapeEroThots();
+                        totalScrapedLinks++;
 
-                                scrapedVids += await Scrape.ScrapeViralPornHub();
-                                totalScrapedLinks++;
+                        scrapedVids += await scrape.ScrapeViralPornHub();
+                        totalScrapedLinks++;
 
-                                scrapedVids += await Scrape.ScrapeThotHub();
-                                totalScrapedLinks++;
+                        scrapedVids += await scrape.ScrapeThotHub();
+                        totalScrapedLinks++;
 
-                                scrapedVids += await Scrape.ScrapeMat6tube();
-                                totalScrapedLinks++;
+                        scrapedVids += await scrape.ScrapeMat6tube();
+                        totalScrapedLinks++;
 
-                                scrapedVids += await Scrape.ScrapeHClips();
-                                totalScrapedLinks++;
+                        scrapedVids += await scrape.ScrapeHClips();
+                        totalScrapedLinks++;
 
-                                scrapedVids += await Scrape.ScrapeCamWhorez();
-                                totalScrapedLinks++;
-                            });
+                        scrapedVids += await scrape.ScrapeCamWhorez();
+                        totalScrapedLinks++;
 
-                            while (!scrapingTask.IsCompleted) {
-                                int currentProgress = CalculateCurrentProgress(totalScrapedLinks);
-                                Invoke(new Action(() => {
-                                    progressBar.Value = currentProgress;
-                                }));
+                        scrapedVids += await scrape.ScrapeGotAnyNudes();
+                        totalScrapedLinks++;
 
-                                await Task.Delay(100);
-                            }
+                        scrapedVids += await scrape.ScrapeInternetChicks();
+                        totalScrapedLinks++;
 
-                            Invoke(new Action(() => {
-                                progressBar.Value = 100;
-                            }));
 
-                            Console.SetOut(standardOut);
-                        }
-                    } catch (Exception ex) {
-                        // Display an error message if an exception occurs during scraping
-                        MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    } finally {
-                        // Display a completion message and reset UI elements
-                        MessageBox.Show($"Done scraping.\nScraped {scrapedVids} links for you!", $"Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    });
 
+                    while (!scrapingTask.IsCompleted) {
+                        int currentProgress = CalculateCurrentProgress(totalScrapedLinks);
                         Invoke(new Action(() => {
-                            progressBar.Value = 0;
+                            progressBar.Value = currentProgress;
                         }));
 
-                        progressBar.Visible = false;
-                        searchBtn.Enabled = true;
+                        await Task.Delay(100);
                     }
-                } else {
-                    // Enable the search button if the user cancels the save file dialog
-                    searchBtn.Enabled = true;
+
+                    Invoke(new Action(() => {
+                        progressBar.Value = 100;
+                    }));
+
+                    Console.SetOut(standardOut);
                 }
+            } catch (Exception ex) {
+                // Display an error message if an exception occurs during scraping
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                ResetUI();
+            } finally {
+                // Display a completion message and reset UI elements
+                MessageBox.Show($"Done scraping.\nScraped {scrapedVids} links for you!", $"Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                Invoke(new Action(() => {
+                    progressBar.Value = 0;
+                }));
+
+                ResetUI();
             }
         }
 
@@ -164,14 +162,15 @@ namespace OnlyFansScraper {
                     try {
                         if (linkNode == null) continue;
                         string link = linkNode.GetAttributeValue("href", "");
-
                         if (uniqueLinks.Contains(link)) continue;
 
                         string videoName = linkNode.Descendants("img")
                                 .FirstOrDefault()
                                 ?.GetAttributeValue("alt", "No Name");
 
-                        if (videoName == null) continue;
+                        if (videoName == null) {
+                            videoName = linkNode.InnerHtml;
+                        }
 
                         int hashIndex = videoName.IndexOf('#');
                         if (hashIndex != -1) {
@@ -247,7 +246,7 @@ namespace OnlyFansScraper {
 
         // Method to calculate the current progress for the progress bar
         private int CalculateCurrentProgress(int totalScrapedLinks) {
-            return (100 / 7) * totalScrapedLinks;
+            return (100 / 9) * totalScrapedLinks;
         }
 
         // Event handler for the queryTextBox's TextChanged event
@@ -272,12 +271,15 @@ namespace OnlyFansScraper {
             }
         }
 
-        private void label1_Click(object sender, EventArgs e) {
-
-        }
-
-        private void textBox1_TextChanged(object sender, EventArgs e) {
-
+        private void ResetUI() {
+            searchBtn.Enabled = false;
+            queryTextBox.Enabled = true;
+            saveVideosNameCheckBox.Enabled = true;
+            userAgentTextBox.Enabled = true;
+            numPagesNumericUpDown.Enabled = true;
+            progressBar.Visible = false;
+            progressBar.Value = 0;
+            uniqueLinks.Clear();
         }
     }
 }
